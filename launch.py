@@ -86,7 +86,50 @@ _parser.add_argument("--output-dir", default=None, metavar="DIR",
 _parser.add_argument("--protein", default=None, metavar="PROTEIN_ID",
                      help="Protein/assay to focus on, e.g. SPIKE_SARS2_Starr_2020_binding. "
                           "Substituted into task/TASK.md and task/LAUNCH.md after copying.")
+_parser.add_argument("--mareforma-export", nargs="?", const=".", default=None, metavar="RUN_DIR",
+                     help="Post-run mode: walk RUN_DIR (default: cwd) for "
+                          "autoscientists_submission/research_insights.md files and sign each "
+                          "one as a content-addressable mareforma claim into "
+                          "RUN_DIR/.mareforma/graph.db. Skips the normal bootstrap. "
+                          "Requires 'pip install mareforma[clawinstitute]>=0.3.3'.")
 _args = _parser.parse_args()
+
+# ── Post-run export mode: skip bootstrap, sign findings, exit ─────
+if _args.mareforma_export is not None:
+    try:
+        import mareforma
+    except ImportError:
+        print("ERROR: --mareforma-export requires the mareforma package.")
+        print("Install: pip install 'mareforma[clawinstitute]>=0.3.3'")
+        sys.exit(1)
+    import hashlib as _hashlib
+    _run_dir = Path(_args.mareforma_export).resolve()
+    _insight_files = sorted(_run_dir.glob("**/autoscientists_submission/research_insights.md"))
+    if not _insight_files:
+        print(f"No autoscientists_submission/research_insights.md found under {_run_dir}")
+        sys.exit(0)
+    _graph_dir = _run_dir / ".mareforma"
+    _graph_dir.mkdir(exist_ok=True)
+    with mareforma.open(_graph_dir) as _graph:
+        _before = len(_graph.query("", limit=100000))
+        for _path in _insight_files:
+            _text = _path.read_text(encoding="utf-8", errors="replace")
+            _task = _path.parent.parent.name
+            # Content-aware idempotency: re-running on unchanged files is a no-op;
+            # editing a file produces a new claim and preserves the old one.
+            _idem = f"autoscientists/{_path.relative_to(_run_dir)}/{_hashlib.sha256(_text.encode()).hexdigest()[:16]}"
+            _graph.assert_claim(
+                text=_text,
+                classification="ANALYTICAL",
+                generated_by=f"agent/autoscientists/{_task}",
+                source_name=_task,
+                idempotency_key=_idem,
+            )
+            print(f"  {_path.relative_to(_run_dir)}")
+        _after = len(_graph.query("", limit=100000))
+    _new = _after - _before
+    print(f"\n{_new} new claims signed, {_after - _new} already present. Graph: {_graph_dir}/graph.db")
+    sys.exit(0)
 
 # Load token after argparse so `--help` works without credentials.
 ADMIN_TOKEN = _load_token()
