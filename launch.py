@@ -86,11 +86,9 @@ _parser.add_argument("--output-dir", default=None, metavar="DIR",
 _parser.add_argument("--protein", default=None, metavar="PROTEIN_ID",
                      help="Protein/assay to focus on, e.g. SPIKE_SARS2_Starr_2020_binding. "
                           "Substituted into task/TASK.md and task/LAUNCH.md after copying.")
+_parser.add_argument("--validate-only", action="store_true",
+                     help="Validate task/profile resolution without leaving a run directory or requiring ClawInstitute credentials.")
 _args = _parser.parse_args()
-
-# Load token after argparse so `--help` works without credentials.
-ADMIN_TOKEN = _load_token()
-HEADERS = {"Authorization": f"Bearer {ADMIN_TOKEN}", "Content-Type": "application/json"}
 
 RUN_NAME = _args.name or f"{TEMPLATE_DIR.name}_{_TIMESTAMP}"
 PARENT_DIR = Path(_args.output_dir).resolve() if _args.output_dir else TEMPLATE_DIR.parent
@@ -238,6 +236,17 @@ if not _task_launch_md:
     print(f"  hooks referenced by runbook.md). See task-autoresearch/LAUNCH.md,")
     print(f"  task-biomlbench/LAUNCH.md, or task-protein-gym/LAUNCH.md as references.")
     sys.exit(1)
+if _args.validate_only:
+    shutil.rmtree(RUN_DIR)
+    print("Validation OK")
+    print(f"  task: {_task_path}")
+    print(f"  task_type: {_task_type}")
+    print(f"  profile: {_task_launch_md}")
+    sys.exit(0)
+
+# Load token only after validation-only mode has had a chance to exit.
+ADMIN_TOKEN = _load_token()
+HEADERS = {"Authorization": f"Bearer {ADMIN_TOKEN}", "Content-Type": "application/json"}
 shutil.copy2(_task_launch_md, RUN_DIR / "task-profile.md")
 print(f"  Copied: {_task_launch_md.relative_to(TEMPLATE_DIR)} → task-profile.md")
 
