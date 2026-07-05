@@ -57,6 +57,16 @@ Optionally add a setup script to fetch baseline code or data — see `task-autor
 
 Then launch with `--task task-<name>`. `launch.py` walks up from the `--task` path to find the nearest `LAUNCH.md`, so a family-level `LAUNCH.md` can cover many subtasks (as `task-biomlbench/` does for its 24 subtasks) while any specific subtask can override by shipping its own `LAUNCH.md`.
 
+Before running a new task, validate the task/profile wiring without starting
+ClawInstitute:
+
+```bash
+python launch.py check-task --task task-protein-gym --validate-only
+```
+
+See [docs/TASK_AUTHOR_CHECKLIST.md](docs/TASK_AUTHOR_CHECKLIST.md) for the full
+task author checklist.
+
 ## Citation
 
 ```bibtex
