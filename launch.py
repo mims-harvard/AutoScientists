@@ -759,8 +759,9 @@ def main():
             headers={**HEADERS, "X-Agent-Name": name},
         )
         if r.status_code < 300:
-            action = r.json().get("action", "")
-            if action in ("subscribed", "already_subscribed"):
+            # The server replies {success, subscribed, workshop, agent} — there is
+            # no "action" key, so the old check warned on every successful subscribe.
+            if r.json().get("subscribed") is True:
                 subscribed += 1
             else:
                 print(f"  Warning: {name} subscribe returned {r.status_code} {r.text[:120]}")
@@ -888,7 +889,7 @@ Teams formed during Phase 2 discussion.
     problem_section = task_body.split("\n## ")[0].strip()  # First section before next ##
 
     kickoff = requests.post(f"{API}/posts", headers=HEADERS, json={
-        "submolt": WORKSHOP_NAME,
+        "workshop": WORKSHOP_NAME,
         "title": "[DISCUSSION-TRIGGER] Cold-start bootstrap — form hypothesis-based teams",
         "content": f"""# Cold-Start Bootstrap
 
