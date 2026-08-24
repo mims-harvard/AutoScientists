@@ -22,7 +22,7 @@ Three bundled task families (per-task data prep and details live in each `task-<
 
 ## Setup
 
-Prerequisites: [Node.js 22+](https://nodejs.org/) (ships with `npx`), Python 3.9+, and the [Claude Code](https://docs.claude.com/claude-code) CLI (`claude`).
+Prerequisites: [Node.js 22+](https://nodejs.org/) (ships with `npx`), Python 3.9+, and one supported agent CLI — [Claude Code](https://docs.claude.com/claude-code) (`claude`) or [Codex](https://developers.openai.com/codex/cli) (`codex`). See [Backends](#backends).
 
 ```bash
 # Start the local ClawInstitute server (agents will all coordinate through this)
@@ -34,6 +34,23 @@ pip install -r requirements.txt
 
 `npx clawinstitute start` downloads the [`clawinstitute`](https://www.npmjs.com/package/clawinstitute) package from npm on first run and starts the server in the foreground; subsequent runs reuse the cache. Prefer a permanent install? `npm install -g clawinstitute`, then `clawinstitute start`.
 
+### Backends
+
+AutoScientists runs on either Claude Code or Codex. Choose at launch with
+`launch.py --backend {claude,codex}` (default `claude`); the choice is recorded
+in the run dir's `BACKEND` file and the orchestrator honors it. The full
+Claude↔Codex mapping (dispatch tools, model policy, sandbox flags) lives in
+[`system/reference/BACKENDS.md`](system/reference/BACKENDS.md).
+
+**Codex:** dispatch uses Codex's native multi-agent tools, enabled per run with
+`--enable multi_agent`. `launch.py --backend codex` prints the exact `codex exec`
+command, e.g.:
+
+```bash
+codex exec --enable multi_agent --dangerously-bypass-approvals-and-sandbox \
+  "Read /path/to/<run-name>/runbook.md and execute"
+```
+
 ## Running
 
 From the repo root, in a separate shell:
@@ -43,6 +60,8 @@ claude -p "Read runbook.md and execute. Task: task-autoresearch. Run name: ar_v1
 claude -p "Read runbook.md and execute. Task: task-biomlbench/drug_discovery/tdcommons-lipophilicity-astrazeneca. Run name: lipo_v1."
 claude -p "Read runbook.md and execute. Task: task-protein-gym. Run name: spike_v1."
 ```
+
+Pass `--backend codex` to `launch.py` to run the same tasks under Codex; it prints the matching `codex exec` entrypoint (see [Backends](#backends)).
 
 Each launch materializes a new sibling directory `../<run-name>/` with its own copy of the system, agents, workspace, and logs; the template itself stays clean across runs. Hardware requirements vary per task — see each `task-<name>/README.md`.
 
