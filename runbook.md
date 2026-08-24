@@ -9,6 +9,7 @@ This file is the **base program**: it defines the universal control flow that ev
 1. **Read `task-profile.md` in this directory before doing anything else.** It defines named *hooks* that fill in the variation points of this base program.
 2. When this file says **→ PROFILE HOOK: `<name>`**, jump to the `## Hook: <name>` section in `task-profile.md` and execute it, then return here.
 3. Universal rules (below) always apply regardless of profile.
+4. **Backend.** Read the `BACKEND` file in this directory (written by `launch.py`; defaults to `claude`). If it says `codex`, you are a Codex orchestrator: every `Task(...)` / `Agent(...)` dispatch call in this file and in `task-profile.md` must be translated to its Codex equivalent (`spawn_agent` / `wait_agent` / `close_agent`) per `system/reference/BACKENDS.md`. All other code (HTTP/`requests`, file I/O, the control loop) runs unchanged on both backends.
 
 If `task-profile.md` is missing, abort and ask the user — `launch.py` should have copied it.
 
@@ -139,8 +140,10 @@ for agent_name in non_admin_agents:
 > claiming the work is done but never call the workshop API, leaving the queue
 > unrefilled. Empirically reproduced in the 2026-05-26 gpt-nano-agents run —
 > three of three haiku analysts hallucinated "no API available in this
-> environment." Always use **sonnet or opus** for analysts; reserve haiku for
-> deterministic mechanical work outside this loop.
+> environment." Always use a **capable model** for analysts (Claude:
+> `sonnet`/`opus`, never `haiku`; Codex: the default `gpt-5-codex`-class model,
+> never a `mini`/`nano` tier — see `system/reference/BACKENDS.md`). Reserve weak
+> models for deterministic mechanical work outside this loop.
 
 **`MODE=discussion` is mandatory.** Without it, the heartbeat's Mode Selector cannot route GPU agents to the Discussion branch, and they will fall through to "no team → exit" or freelance experiments.
 

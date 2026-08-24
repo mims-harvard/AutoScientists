@@ -177,6 +177,25 @@ FOCUS_ROOT=$FOCUS_ROOT
 Read $FOCUS_ROOT/system/HEARTBEAT.md and follow it." --dangerously-skip-permissions --ephemeral
 ```
 
+**Codex equivalent** (see `system/reference/BACKENDS.md`):
+
+```bash
+FOCUS_ROOT="/path/to/ablation"
+AGENT_NAME="ar2_gpu1"
+
+# GPU agent (CUDA_VISIBLE_DEVICES goes in the prompt text, same as Claude)
+codex exec --dangerously-bypass-approvals-and-sandbox "You are $AGENT_NAME.
+FOCUS_ROOT=$FOCUS_ROOT
+CUDA_VISIBLE_DEVICES=0
+Read $FOCUS_ROOT/system/HEARTBEAT.md and follow it."
+```
+
+`codex exec --ephemeral` is the analog of Claude's `--ephemeral`, and
+`--dangerously-bypass-approvals-and-sandbox` the analog of
+`--dangerously-skip-permissions`; the hardened sandbox alternative is in
+`BACKENDS.md`. Only the orchestrator needs `--enable multi_agent` — leaf agents
+launched this way do not spawn subagents.
+
 The agent discovers everything else: API key, role, team, workspace IDs, current state.
 
 ## Agent Naming Convention

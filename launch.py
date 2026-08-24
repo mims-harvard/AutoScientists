@@ -86,6 +86,9 @@ _parser.add_argument("--output-dir", default=None, metavar="DIR",
 _parser.add_argument("--protein", default=None, metavar="PROTEIN_ID",
                      help="Protein/assay to focus on, e.g. SPIKE_SARS2_Starr_2020_binding. "
                           "Substituted into task/TASK.md and task/LAUNCH.md after copying.")
+_parser.add_argument("--backend", default="claude", choices=["claude", "codex"],
+                     help="LLM CLI that will run the orchestrator and agents (default: claude). "
+                          "Recorded in the run dir's BACKEND file; see system/reference/BACKENDS.md.")
 _args = _parser.parse_args()
 
 # Load token after argparse so `--help` works without credentials.
@@ -532,6 +535,10 @@ print(f"  Created: {', '.join(_created)}")
 
 ROOT = RUN_DIR
 REPO_DIR = ROOT / "repo"
+
+# Record which LLM CLI this run targets. runbook.md Step 0 reads this to decide
+# whether to translate Task()/Agent() dispatch calls to Codex spawn_agent.
+(ROOT / "BACKEND").write_text(_args.backend + "\n")
 # Always use "task" subdirectory in run directory
 TASK_DIR = ROOT / "task"
 AGENTS_DIR = ROOT / "agents"
@@ -952,16 +959,22 @@ No monitor intervention is required.
     print("=" * 60)
     program_file = "runbook.md"
     task_type_label = "biomlbench" if IS_BENCHMARK else ("proteingym" if IS_PROTEINGYM else "optimization")
+    if _args.backend == "codex":
+        run_cmd = (f'codex exec --enable multi_agent --dangerously-bypass-approvals-and-sandbox '
+                   f'"Read {ROOT / program_file} and execute"')
+    else:
+        run_cmd = f'claude -p "Read {ROOT / program_file} and execute"'
     print(f"""
   Experiment dir: {ROOT}
   Workshop:      {WORKSHOP_NAME}
   Workspace ID:  {ws_id}
   Agents:        {len(AGENTS)} created in {ROOT / 'agents'}
   Task type:     {task_type_label}
+  Backend:       {_args.backend}
 
   To run the orchestrator:
 
-    claude -p "Read {ROOT / program_file} and execute"
+    {run_cmd}
 """)
 
 
